@@ -7,13 +7,22 @@ volumes:
       driver: local
   keycloak_data:
       driver: local
+  gerrit_data:
+      driver: local
+  sonarqube_bundled-plugins:
+  sonarqube_conf:
+  sonarqube_data:
+  sonarqube_db:
+  sonarqube_extensions:
 
 services:
   postgres:
       image: postgres:9.6
       container_name: postgres
       volumes:
+        - sonarqube_db:/var/lib/postgresql
         - postgres_data:/var/lib/postgresql/data
+        # - ../docker-postgresql-multiple-databases:/docker-entrypoint-initdb.d
       environment:
         POSTGRES_USER: gerrit2
         POSTGRES_PASSWORD: gerrit
@@ -23,8 +32,11 @@ services:
         # POSTGRES_USER: keycloak
         # POSTGRES_PASSWORD: password
         # CREATE DATABASE keycloak
-        # CREATE USER tester WITH PASSWORD 'password';
+        # CREATE USER keycloak WITH PASSWORD 'password';
         # GRANT ALL PRIVILEGES ON DATABASE "keycloak" to keycloak;;
+        # - POSTGRESQL_USER=sonar
+        # - POSTGRESQL_PASS=xaexohquaetiesoo
+        # - POSTGRESQL_DB=sonarqube
       ports:
         - 5432:5432
 
@@ -39,6 +51,7 @@ services:
         POSTGRES_PASSWORD: password
         KEYCLOAK_USER: admin
         KEYCLOAK_PASSWORD: admin
+        KEYCLOAK_LOGLEVELP: DEBUG
         # Uncomment the line below if you want to specify JDBC parameters. The parameter below is just an example, and it shouldn't be used in production without knowledge. It is highly recommended that you read the PostgreSQL JDBC driver documentation in order to use it.
         #JDBC_PARAMS: "ssl=true"
       ports:
@@ -47,7 +60,7 @@ services:
         - postgres
       volumes:
         - keycloak_data:/data
-      Create realm, client and user via Keycloak UI
+      # Create realm, client and user via Keycloak UI
 
   jenkins:
       image: openshift/jenkins-2-centos7:latest
@@ -90,7 +103,7 @@ services:
         DB_ENV_POSTGRES_USER: gerrit2
         DB_ENV_POSTGRES_PASSWORD: gerrit
         OAUTH_KEYCLOAK_CLIENT_ID: gerrit
-        OAUTH_KEYCLOAK_CLIENT_SECRET: a53f1a9a-61a8-44b6-a2c3-1c2e1c2ba84f
+        OAUTH_KEYCLOAK_CLIENT_SECRET: f69d68fe-fb03-46af-9d8e-dc8c7c5b2a22
         OAUTH_KEYCLOAK_REALM: edp
         OAUTH_KEYCLOAK_ROOT_URL: http://keycloak:8080
 
@@ -100,4 +113,23 @@ services:
       depends_on:
         - postgres
       volumes:
-        - /srv/infra/gerrit:/var/gerrit/review_site
+        - 'gerrit_data:/var/gerrit/review_site'
+
+  sonarqube:
+      image: sonarqube:7.1
+      restart: always
+      environment:
+        - SONARQUBE_JDBC_USERNAME=sonar
+        - SONARQUBE_JDBC_PASSWORD=xaexohquaetiesoo
+        - SONARQUBE_JDBC_URL=jdbc:postgresql://postgres:5432/sonarqube
+        # - DB_USER=sonar
+        # - DB_PASS=xaexohquaetiesoo
+        # - DB_NAME=sonar
+      ports:
+        - "9000:9000"
+        # - "9092:9092"
+      volumes:
+        - sonarqube_conf:/opt/sonarqube/conf
+        - sonarqube_data:/opt/sonarqube/data
+        - sonarqube_extensions:/opt/sonarqube/extensions
+        - sonarqube_bundled-plugins:/opt/sonarqube/lib/bundled-plugins
