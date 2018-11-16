@@ -22,7 +22,7 @@ services:
       volumes:
         - sonarqube_db:/var/lib/postgresql
         - postgres_data:/var/lib/postgresql/data
-        # - ../docker-postgresql-multiple-databases:/docker-entrypoint-initdb.d
+        - ../docker-postgresql-multiple-databases:/docker-entrypoint-initdb.d
       environment:
         POSTGRES_USER: gerrit2
         POSTGRES_PASSWORD: gerrit
